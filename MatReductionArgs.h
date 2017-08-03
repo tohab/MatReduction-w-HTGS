@@ -9,6 +9,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+
 class MatReductionArgs {
  public:
 

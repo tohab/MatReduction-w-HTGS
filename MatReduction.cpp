@@ -1,5 +1,4 @@
 // MatrixReduction.cpp : Defines the entry point for the application.
-//
 
 #include "stdafx.h"
 #include "resource.h"
@@ -21,30 +20,33 @@
 #include "ReductionAccumTask.h"
 #include "MatReductionArgs.h"
 
-// returns -1 if data are not the same, 0 if they are the same
+/// Mainfile for matrix reduction.
+
+// Returns -1 if reduction data does not match, and prints which part is incorrect. Returns 0 if matches.
 // 
 int validateResults(ReductionData *sequentialData, const std::shared_ptr<ReductionData>& htgsData) {
 	if (sequentialData->getMax() != htgsData->getMax()) {
-		std::cout << "max wrong" << std::endl;
+		std::cout << "Max value is different" << std::endl;
 		return -1;
 	} 
 	if (sequentialData->getMin() != htgsData->getMin()) {
-		std::cout << "min wrong" << std::endl;
+		std::cout << "Min value is different" << std::endl;
 		return -1;
 	} 
 	if (sequentialData->getSum() != htgsData->getSum()) {
-		std::cout << "sum wrong" << std::endl;
+		std::cout << "Sum is different" << std::endl;
 		return -1;
 	} 
 	if (sequentialData->getSumSq() != htgsData->getSumSq()) {
-		std::cout << "Sequential sumsq: " << sequentialData->getSumSq() << ", htgs sumsq: " << htgsData->getSumSq() << std::endl;
+		std::cout << "Sum of squares is different" << std::endl;
 		return -1;
 	}
 	std::cout << "validating" << std::endl;
 	return 0;
 }
+
+// Reduces the matrix to ReductionData without HTGS.
 ReductionData* computeSequentialReduction(double *matrix, size_t width, size_t height, size_t leadingDimension) {
-	//computeMatMul(fullMatrixAHeight, fullMatrixBWidth, fullMatrixAWidth, 1.0, matrixA, fullMatrixAWidth, matrixB, fullMatrixBWidth, 0.0, matrixC, fullMatrixBWidth, false);
 	double sum = 0;
 	double sumSq = 0;
 	double min = DBL_MAX;
@@ -65,13 +67,13 @@ ReductionData* computeSequentialReduction(double *matrix, size_t width, size_t h
 }
 
 int main(int argc, char *argv[]) {
+
+	// Processses all command-line arguments to variables.
 	MatReductionArgs matReductionArgs;
 	matReductionArgs.processArgs(argc, argv);
-
 	size_t matrixHeight = matReductionArgs.getMatrixHeight();
 	size_t matrixWidth = matReductionArgs.getMatrixWidth();
 	size_t numElements = matrixWidth*matrixHeight;
-
 	size_t blockSize = matReductionArgs.getBlockSize();
 	if (blockSize > matrixWidth) {
 		blockSize = matrixWidth;
@@ -81,29 +83,27 @@ int main(int argc, char *argv[]) {
 		blockSize = matrixHeight;
 		std::cout << "Warning: blockSize too large, setting to smallest dimension" << std::endl;
 	}
-
 	size_t numReadThreads = matReductionArgs.getNumReadThreads();
 	size_t numProdThreads = matReductionArgs.getNumReductionThreads();
-
 	std::string directory = matReductionArgs.getDirectory();
 	std::string outputDirectory = matReductionArgs.getOutputDir();
 	bool runSequential = matReductionArgs.isRunSequential();
 	bool validate = matReductionArgs.isValidateResults();
 	std::string runtimeFileStr("runtimes");
-	//int numRetry = 1;
+
 	std::ofstream runtimeFile(runtimeFileStr, std::ios::app);
-	// ^ processes all arguments to command w/ MatReductionArgs
 
 	double *matrix = new double[numElements];
+	// initMatrix generates the values of the matrix, and is defined in utilmatrix.cpp in the HTGS-tutorials library
 	initMatrix(matrix, matrixWidth, matrixHeight, false);
 	
 	ReductionData *sequentialData;
 
+	// Starts a clock to get the program runtime.
 	SimpleClock clk;
 	SimpleClock endToEnd;
 
 	if (runSequential) {
-		// computeSequentialendToEnd.start();
 		clk.start();
 		endToEnd.start();
 
@@ -120,19 +120,20 @@ int main(int argc, char *argv[]) {
 
 		std::cout << std::fixed << "Sequential, " << "average: " << average << ", standard deviation: " << sqrt(variance) << ", minimum: " << sequentialData->getMin() << ", maximum: " << sequentialData->getMax() << std::endl;
 		std::cout <<  "Time: " << clk.getAverageTime(TimeVal::MILLI) << ", " << endToEnd.getAverageTime(TimeVal::MILLI) << std::endl; 
-		//std::cout << (runSequential ? "sequential" : "htgs") << ", time: " << clk.getAverageTime(TimeVal::MILLI) << "ms" << std::endl;
 	}
 	else {
 		endToEnd.start();
+
+		// Initiate all tasks.
 		LoadMatrixTask *readMatTask = new LoadMatrixTask(matrix, numReadThreads, MatrixType::MatrixAny, blockSize, matrixWidth, matrixHeight, false);
 		BlockReductionTask *blkReductionTask = new BlockReductionTask(numProdThreads);
-		// passes the number of blocks to reduce to the accumulator so it can count the right number
+		// The number of total blocks must be passed to the accumulator
 		ReductionAccumTask *reductionAccumTask = new ReductionAccumTask(ceil((double)matrixWidth*matrixHeight / blockSize / blockSize));
-		// possible source of error?
 
 		size_t blkHeightMat = readMatTask->getNumBlocksRows();
 		size_t blkWidthMat = readMatTask->getNumBlocksCols();
 
+		// Makes Taskgraph and add edges and tasks
 		auto taskGraph = new htgs::TaskGraphConf<MatrixRequestData, ReductionData>();
 
 		taskGraph->setGraphConsumerTask(readMatTask);
@@ -152,7 +153,6 @@ int main(int argc, char *argv[]) {
 		}
 		taskGraph->finishedProducingData();
 
-		// had not before
 		while (!taskGraph->isOutputTerminated()) {
 			auto data = taskGraph->consumeData();
 			clk.stopAndIncrement();
@@ -172,7 +172,6 @@ int main(int argc, char *argv[]) {
 					sequentialData = computeSequentialReduction(matrix, matrixWidth, matrixHeight, matrixWidth);
 					int res = validateResults(sequentialData, data);
 					if (res != 0) {
-						// it appears the multiplication did not go as planned :(
 						std::cout << "Validation FAILED" << std::endl;
 					}
 					else {
@@ -182,14 +181,11 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-
 		runtime->waitForRuntime();
-		taskGraph->writeDotToFile("output.dot");
-		taskGraph->writeDotToFile("profile-graph.dot", DOTGEN_COLOR_COMP_TIME | DOTGEN_FLAG_SHOW_ALL_THREADING);
-
+		// taskGraph->writeDotToFile("output.dot"); // plain output, if desired
+		taskGraph->writeDotToFile("profile-graph.dot", DOTGEN_COLOR_COMP_TIME | DOTGEN_FLAG_SHOW_ALL_THREADING); // Needs profiling enabled for full effect
 
 		delete runtime;
-		//std::cout << (runSequential ? "sequential" : "htgs") << ", time: " << clk.getAverageTime(TimeVal::MILLI) << ", end-to-end: " << endToEnd.getAverageTime(TimeVal::MILLI) << std::endl;
 	}
 
 }
