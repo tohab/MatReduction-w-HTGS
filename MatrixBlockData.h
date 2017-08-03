@@ -1,6 +1,12 @@
 #pragma once
 #include <htgs/api/MemoryData.hpp>
 #include "MatrixRequestData.h"
+
+/// Stores a block of data.
+/**
+* Contains the type of data, width, height, and leading dimension for the block of the matrix.
+*/
+
 template<class Type>
 class MatrixBlockData : public htgs::IData {
 public:

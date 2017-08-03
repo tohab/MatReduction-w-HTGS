@@ -1,8 +1,12 @@
 #pragma once
 #include <htgs/api/IData.hpp>
 
+/// Stores data from reductions.
+/**
+* Contains the sum, sum of squares, minimum, and maximum of the elements of a block. Can be used to calculute average/standard deviation.
+*/
+
 class ReductionData : public htgs::IData {
-	//private goes outside parens
 public:
 	ReductionData(double sum, double sumSq, double min, double max) : sum(sum), sumSq(sumSq), blockMin(min), blockMax(max) {}
 

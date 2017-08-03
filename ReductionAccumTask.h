@@ -6,6 +6,11 @@
 #include "ReductionData.h"
 #include <htgs/api/ITask.hpp>
 
+/// Accumulates ReductionDatas of blocks until all have been processed
+/**
+* Takes in ReductionData and accumulates it with existing values. Counts number of blocks processed; once count reaches total number of blocks in the matrix, passes on combined ReductionData.
+*/
+
 class ReductionAccumTask : public htgs::ITask<ReductionData, ReductionData> {
 
 public:
@@ -17,11 +22,10 @@ public:
 		if (data->getMin() < currentMin) currentMin = data->getMin();
 		if (data->getMax() > currentMax) currentMax = data->getMax();
 
-		//std::cout << "Data min = " << data->getMin() << ", data max = " << data->getMax() << std::endl;
-		
-		// if we have reduced/compared to all the blocks, pass this final data onwards
+		// Increments count of blocks.
 		count++;
-		//std::cout << "Current min = " << currentMin << ", current max = " << currentMax << std::endl;
+
+		// Passes on ReductionData if all blocks have been counted.
 		if (count >= numTotalBlocks) {
 			addResult(new ReductionData(currentSum, currentSumSq, currentMin, currentMax));
 		}

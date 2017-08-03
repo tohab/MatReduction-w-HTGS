@@ -5,6 +5,11 @@
 #include "ReductionData.h"
 #include <htgs/api/ITask.hpp>
 
+/// Task to perform reduction on a single block
+/**
+* Takes in MatrixBlockData and reduces it to ReductionData.
+*/
+
 class BlockReductionTask : public htgs::ITask<MatrixBlockData<double *>, ReductionData> { 
 
 public:
@@ -30,8 +35,6 @@ public:
 						max = element;
 				}
 			}
-		//std::cout << "sum = " << sum << ", r = " << data->getRequest()->getRow() << ", c = " << data->getRequest()->getCol() << std::endl;
-		//std::cout << "sum = " << sum << ", sumSq = " << sumSq << ", min = " << min << ", max = " << max << std::endl;
 
 		addResult(new ReductionData(sum, sumSq, min, max));
 	}

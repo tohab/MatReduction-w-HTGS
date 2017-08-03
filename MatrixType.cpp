@@ -2,7 +2,6 @@
 #include <string>
 #include "MatrixType.h"
 
-
 std::string matrixTypeToString(MatrixType type) {
 	switch (type) {
 	case MatrixType::MatrixA: return "MatrixA";

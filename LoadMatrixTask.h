@@ -5,6 +5,11 @@
 #include "MatrixRequestData.h"
 #include "../../HTGS-Tutorials/tutorial-utils/util-matrix.h"
 
+// Task to load a pointer to a block in the matrix
+/**
+* Takes in MatrixRequestData, which specifies which row/col to row, and outputs matrix block data at the location.
+*/
+
 class LoadMatrixTask : public htgs::ITask<MatrixRequestData, MatrixBlockData<double *>> {
 public:
 	LoadMatrixTask(double *matrix, size_t numThreads, MatrixType matrixType, size_t blockSize, size_t fullMatrixWidth, size_t fullMatrixHeight, bool colMajor) :
@@ -36,11 +41,13 @@ public:
 		else
 			matrixHeight = blockSize;
 		double *memPtr;
-		// compute starting location of pointer
+
+		// Computes starting location of pointer by converting 2D description of block to 1D matrix in memory.
 		if (colMajor)
 			memPtr = &matrix[IDX2C(blockSize*row, blockSize*col, fullMatrixHeight)];
 		else
 			memPtr = &matrix[blockSize * col + blockSize * row * fullMatrixWidth];
+
 		if (colMajor)
 			addResult(new MatrixBlockData<double *>(data, memPtr, matrixWidth, matrixHeight, fullMatrixHeight));
 		else

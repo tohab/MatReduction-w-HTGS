@@ -1,6 +1,9 @@
 #pragma once
 #include <htgs/api/IData.hpp>
 #include "MatrixType.h"
+
+/// Stores data to request a block.
+
 class MatrixRequestData : public htgs::IData {
 public:
 	MatrixRequestData(size_t row, size_t col, MatrixType type) : row(row), col(col), type(type) {}
